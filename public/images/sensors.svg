@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="400" height="300" fill="#f0f8ff"/>
+  
+  <!-- Temperature Sensor -->
+  <circle cx="100" cy="100" r="30" fill="#FF4500"/>
+  <path d="M100 70 L100 130" stroke="white" stroke-width="4"/>
+  <path d="M70 100 L130 100" stroke="white" stroke-width="4"/>
+  <text x="100" y="180" text-anchor="middle" fill="#666" font-size="14">Temperature</text>
+  
+  <!-- Smoke Sensor -->
+  <circle cx="200" cy="100" r="30" fill="#808080"/>
+  <path d="M200 70 L200 130" stroke="white" stroke-width="4"/>
+  <path d="M170 100 L230 100" stroke="white" stroke-width="4"/>
+  <text x="200" y="180" text-anchor="middle" fill="#666" font-size="14">Smoke</text>
+  
+  <!-- IR Sensor -->
+  <circle cx="300" cy="100" r="30" fill="#FF6347"/>
+  <path d="M300 70 L300 130" stroke="white" stroke-width="4"/>
+  <path d="M270 100 L330 100" stroke="white" stroke-width="4"/>
+  <text x="300" y="180" text-anchor="middle" fill="#666" font-size="14">IR</text>
+  
+  <!-- Connection Lines -->
+  <path d="M100 130 L100 200" stroke="#808080" stroke-width="2" stroke-dasharray="5,5" fill="none"/>
+  <path d="M200 130 L200 200" stroke="#808080" stroke-width="2" stroke-dasharray="5,5" fill="none"/>
+  <path d="M300 130 L300 200" stroke="#808080" stroke-width="2" stroke-dasharray="5,5" fill="none"/>
+  
+  <!-- Control Unit -->
+  <rect x="150" y="200" width="100" height="60" fill="#2F4F4F" rx="5"/>
+  <rect x="160" y="210" width="80" height="40" fill="#3CB371" rx="3"/>
+  <circle cx="180" cy="230" r="3" fill="#FFD700"/>
+  <circle cx="200" cy="230" r="3" fill="#FFD700"/>
+  <circle cx="220" cy="230" r="3" fill="#FFD700"/>
+  
+  <!-- Title -->
+  <text x="200" y="50" text-anchor="middle" fill="#333" font-size="18" font-weight="bold">Detection Sensors</text>
+</svg> 

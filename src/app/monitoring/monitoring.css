@@ -1,0 +1,95 @@
+/* Map container */
+.mapboxgl-map {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Fire markers */
+.fire-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  position: relative;
+  transform: translate(-50%, -50%);
+  filter: blur(2px);
+}
+
+.fire-marker.active {
+  background: radial-gradient(circle at center, 
+    rgba(255, 165, 0, 0.9),
+    rgba(255, 0, 0, 0.8) 40%,
+    rgba(255, 0, 0, 0) 70%
+  );
+  animation: fire-pulse 1.5s infinite;
+}
+
+/* Resource markers */
+.resource-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 2px solid #3b82f6;
+  position: relative;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.resource-marker.truck::after {
+  content: "🚒";
+  font-size: 16px;
+}
+
+.resource-marker.helicopter::after {
+  content: "🚁";
+  font-size: 16px;
+}
+
+.resource-marker.sprinkler::after {
+  content: "💧";
+  font-size: 16px;
+}
+
+/* Popup styling */
+.mapboxgl-popup {
+  max-width: 200px;
+}
+
+.mapboxgl-popup-content {
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Animations */
+@keyframes fire-pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(2px) brightness(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    filter: blur(3px) brightness(1.2);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(2px) brightness(1);
+  }
+}
+
+/* Navigation controls */
+.mapboxgl-ctrl-group {
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.mapboxgl-ctrl-group button {
+  background-color: white !important;
+  border: none !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background-color: #f8fafc !important;
+} 
