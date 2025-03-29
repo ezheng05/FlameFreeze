@@ -156,6 +156,29 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Join Our Community Network */}
+        <section className="bg-blue-50 p-4 sm:p-6 rounded-xl shadow-md">
+          <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4">
+            <Users className="h-12 w-12 text-blue-500 flex-shrink-0" />
+            <div>
+              <h3 className="text-xl font-bold text-blue-700 mb-2">Join Our Community Network</h3>
+              <p className="mb-4 text-gray-600">
+                Become a community fire warden, receive personalized alerts, and help protect your neighborhood. 
+                Our system integrates with NotifyLA to provide real-time updates and evacuation information.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/community" className="bg-blue-600 text-white hover:bg-blue-700 font-bold py-2 px-6 rounded-lg transition-colors duration-300 text-center">
+                  Join Now
+                </Link>
+                <Link href="/community#resources" className="text-blue-600 hover:text-blue-800 font-semibold flex items-center justify-center sm:justify-start">
+                  <Bell className="h-4 w-4 mr-1" />
+                  Set Up Alerts
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Fire Risk Chart */}
         <section className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
           <h2 className="text-lg sm:text-xl font-semibold mb-4">Fire Risk by Area</h2>
