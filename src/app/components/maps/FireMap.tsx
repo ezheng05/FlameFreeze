@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from 'react'
-import { MapPin, AlertTriangle, Droplets, Truck } from "lucide-react"
+import { MapPin, AlertTriangle } from "lucide-react"
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
@@ -29,18 +29,11 @@ interface RiskZone {
   name: string
 }
 
-interface Resource {
-  id: string
-  type: 'truck' | 'drone' | 'sprinkler'
-  coordinates: [number, number]
-  status: 'responding' | 'onsite' | 'patrolling'
-  eta?: string
-}
-
 export default function FireMap() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
+  const [isMapLoaded, setIsMapLoaded] = useState(false)
 
   // Show error state if token is missing
   if (!MAPBOX_TOKEN) {
@@ -94,61 +87,62 @@ export default function FireMap() {
     }
   ])
 
-  const [resources] = useState<Resource[]>([
-    {
-      id: 'truck-1',
-      type: 'truck',
-      coordinates: [-118.2437, 34.0522],
-      status: 'responding',
-      eta: '5 min'
-    },
-    {
-      id: 'drone-1',
-      type: 'drone',
-      coordinates: [-118.3733, 34.1259],
-      status: 'patrolling'
-    },
-    {
-      id: 'drone-2',
-      type: 'drone',
-      coordinates: [-118.5010, 34.0901],
-      status: 'patrolling'
-    },
-    {
-      id: 'sprinkler-1',
-      type: 'sprinkler',
-      coordinates: [-118.4912, 34.0195],
-      status: 'onsite'
-    },
-    {
-      id: 'sprinkler-2',
-      type: 'sprinkler',
-      coordinates: [-118.5504, 34.0952],
-      status: 'onsite'
-    }
-  ])
-
   useEffect(() => {
     if (!mapContainer.current) return
 
-    // Initialize map with Tailwind classes
+    // Initialize map with responsive settings
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      center: [-118.4, 34.05],
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-118.2437, 34.0522], // Los Angeles coordinates
       zoom: 11,
-      attributionControl: false
+      attributionControl: false,
+      preserveDrawingBuffer: true,
+      maxZoom: 20,
+      minZoom: 8,
+      maxBounds: [
+        [-118.8, 33.7], // Southwest coordinates
+        [-117.9, 34.4]  // Northeast coordinates
+      ]
     })
 
-    // Add navigation controls with Tailwind styling
-    const navControl = new mapboxgl.NavigationControl()
-    navControl._container.className = 'rounded-lg shadow-md overflow-hidden'
-    map.current.addControl(navControl)
+    // Add navigation controls
+    map.current.addControl(new mapboxgl.NavigationControl({
+      showCompass: true,
+      showZoom: true,
+      visualizePitch: true
+    }), 'top-right')
 
-    // Clean up on unmount
+    // Add scale control
+    map.current.addControl(new mapboxgl.ScaleControl({
+      maxWidth: 100,
+      unit: 'metric'
+    }), 'bottom-right')
+
+    // Add fullscreen control
+    map.current.addControl(new mapboxgl.FullscreenControl({
+      container: mapContainer.current
+    }), 'top-right')
+
+    // Handle map load
+    map.current.on('load', () => {
+      setIsMapLoaded(true)
+    })
+
+    // Handle window resize
+    const handleResize = () => {
+      if (map.current) {
+        map.current.resize()
+      }
+    }
+    window.addEventListener('resize', handleResize)
+
+    // Cleanup
     return () => {
-      markersRef.current.forEach(marker => marker.remove())
-      map.current?.remove()
+      window.removeEventListener('resize', handleResize)
+      if (map.current) {
+        map.current.remove()
+      }
     }
   }, [])
 
@@ -210,77 +204,46 @@ export default function FireMap() {
         
         markersRef.current.push(marker)
       })
-
-      // Add resource markers with Tailwind classes
-      resources.forEach(resource => {
-        const el = document.createElement('div')
-        el.className = `w-8 h-8 rounded-full relative -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-blue-500 flex items-center justify-center shadow-sm`
-        
-        const icon = document.createElement('span')
-        icon.className = 'text-base'
-        icon.textContent = resource.type === 'truck' ? '🚒' : 
-                         resource.type === 'drone' ? '🚁' : '💧'
-        el.appendChild(icon)
-        
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'center'
-        })
-          .setLngLat(resource.coordinates)
-          .setPopup(
-            new mapboxgl.Popup({ offset: 25 })
-              .setHTML(
-                `<div class="p-3 rounded-lg shadow-md">
-                  <h3 class="text-sm font-bold">${resource.type.charAt(0).toUpperCase() + resource.type.slice(1)}</h3>
-                  <p class="text-xs">Status: ${resource.status}</p>
-                  ${resource.eta ? `<p class="text-xs">ETA: ${resource.eta}</p>` : ''}
-                </div>`
-              )
-          )
-          .addTo(map.current!)
-        
-        markersRef.current.push(marker)
-      })
     })
-  }, [fires, riskZones, resources])
+  }, [fires, riskZones])
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-lg">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">Live Fire Monitoring</h2>
-        <div className="flex items-center space-x-4">
+    <div className="relative w-full h-full min-h-[300px] sm:min-h-[400px] rounded-lg overflow-hidden">
+      <div 
+        ref={mapContainer} 
+        className="absolute inset-0 w-full h-full"
+      />
+      {!isMapLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-700"></div>
+        </div>
+      )}
+      {/* Map controls overlay */}
+      <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+        <button 
+          className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+          onClick={() => map.current?.flyTo({
+            center: [-118.2437, 34.0522],
+            zoom: 11,
+            duration: 2000
+          })}
+        >
+          <MapPin className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+      {/* Map legend */}
+      <div className="absolute bottom-4 left-4 z-10 bg-white rounded-lg shadow-md p-3 text-sm">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full bg-gradient-to-r from-orange-400 to-red-600 animate-pulse" />
-            <span className="text-sm text-gray-600">Active Fire</span>
+            <span>Active Fire</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full bg-gradient-to-r from-yellow-400/60 to-yellow-400/30" />
-            <span className="text-sm text-gray-600">High Risk Area</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-white border-2 border-blue-500 flex items-center justify-center">
-              <span className="text-xs">🚒</span>
-            </div>
-            <span className="text-sm text-gray-600">Fire Truck</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-white border-2 border-blue-500 flex items-center justify-center">
-              <span className="text-xs">🚁</span>
-            </div>
-            <span className="text-sm text-gray-600">Drone Unit</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-white border-2 border-blue-500 flex items-center justify-center">
-              <span className="text-xs">💧</span>
-            </div>
-            <span className="text-sm text-gray-600">Sprinkler Station</span>
+            <span>High Risk Area</span>
           </div>
         </div>
       </div>
-      <div 
-        ref={mapContainer} 
-        className="w-full h-[500px] rounded-lg overflow-hidden"
-      />
     </div>
   )
 } 

@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, AlertTriangle, Droplets, Truck, Building2, Droplet } from "lucide-react";
 
 // Types for resource data
 type FirefightingResource = {
@@ -55,23 +56,11 @@ type SprinklerSystem = {
   waterSource: string;
 };
 
-type HighRiskArea = {
-  id: string;
-  name: string;
-  riskLevel: number;
-  location: {
-    lat: number;
-    lng: number;
-  };
-  radius: number;
-};
-
 type ResourceData = {
   firefightingResources: FirefightingResource[];
   fireStations: FireStation[];
   waterSources: WaterSource[];
   sprinklerSystems: SprinklerSystem[];
-  highRiskAreas: HighRiskArea[];
   lastUpdated: string;
 };
 
@@ -81,7 +70,65 @@ export default function ResourceMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedResource, setSelectedResource] = useState<FirefightingResource | null>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const map = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
+
+  // Mock data for demonstration
+  const mockResourceData: ResourceData = {
+    firefightingResources: [
+      {
+        id: 'truck-1',
+        type: 'truck',
+        name: 'Fire Truck Alpha',
+        status: 'available',
+        location: { lat: 34.0522, lng: -118.2437 },
+        capacity: 1000,
+        personnel: 4,
+        lastUpdated: new Date().toISOString()
+      },
+      {
+        id: 'drone-1',
+        type: 'drone',
+        name: 'Drone Bravo',
+        status: 'deployed',
+        location: { lat: 34.0195, lng: -118.4912 },
+        capacity: 0,
+        personnel: 0,
+        lastUpdated: new Date().toISOString()
+      }
+    ],
+    fireStations: [
+      {
+        id: 'station-1',
+        name: 'Central Fire Station',
+        location: { lat: 34.0522, lng: -118.2437 },
+        resources: ['truck-1', 'truck-2'],
+        coverage: 85
+      }
+    ],
+    waterSources: [
+      {
+        id: 'water-1',
+        type: 'reservoir',
+        name: 'Main Reservoir',
+        location: { lat: 34.0901, lng: -118.5010 },
+        capacity: 1000000,
+        currentLevel: 85
+      }
+    ],
+    sprinklerSystems: [
+      {
+        id: 'sprinkler-1',
+        name: 'Downtown System',
+        location: { lat: 34.0522, lng: -118.2437 },
+        coverage: 75,
+        status: 'active',
+        waterSource: 'water-1'
+      }
+    ],
+    lastUpdated: new Date().toISOString()
+  };
 
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_MAPBOX_TOKEN) {
@@ -90,255 +137,284 @@ export default function ResourceMap() {
       return;
     }
 
-    async function fetchResourceData() {
-      try {
-        const response = await fetch('/api/resources');
-        if (!response.ok) {
-          throw new Error('Failed to fetch resource data');
-        }
-        const data = await response.json() as ResourceData;
-        setResourceData(data);
-        setLoading(false);
-      } catch (err) {
-        setError('Error loading resource data');
-        setLoading(false);
-        console.error('Error fetching resource data:', err);
-      }
-    }
-
-    fetchResourceData();
+    // Use mock data for now
+    setResourceData(mockResourceData);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    if (!mapContainer.current || loading || error || !resourceData) return;
+    if (!mapContainer.current || !resourceData) return;
 
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    
+    // Initialize map with responsive settings
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v11',
-      center: [-118.243683, 34.052235],
-      zoom: 10,
-      pitch: 45,
-      bearing: -17.6
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-118.2437, 34.0522], // Los Angeles coordinates
+      zoom: 11,
+      attributionControl: false,
+      preserveDrawingBuffer: true,
+      maxZoom: 20,
+      minZoom: 8,
+      maxBounds: [
+        [-118.8, 33.7], // Southwest coordinates
+        [-117.9, 34.4]  // Northeast coordinates
+      ]
     });
 
+    // Add navigation controls
+    map.current.addControl(new mapboxgl.NavigationControl({
+      showCompass: true,
+      showZoom: true,
+      visualizePitch: true
+    }), 'top-right');
+
+    // Add scale control
+    map.current.addControl(new mapboxgl.ScaleControl({
+      maxWidth: 100,
+      unit: 'metric'
+    }), 'bottom-right');
+
+    // Add fullscreen control
+    map.current.addControl(new mapboxgl.FullscreenControl({
+      container: mapContainer.current
+    }), 'top-right');
+
+    // Handle map load
     map.current.on('load', () => {
-      // Add 3D buildings layer
-      map.current!.addLayer({
-        'id': '3d-buildings',
-        'source': 'composite',
-        'source-layer': 'building',
-        'filter': ['==', 'extrude', 'true'],
-        'type': 'fill-extrusion',
-        'minzoom': 15,
-        'paint': {
-          'fill-extrusion-color': '#aaa',
-          'fill-extrusion-height': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            15,
-            0,
-            15.05,
-            ['get', 'height']
-          ],
-          'fill-extrusion-base': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            15,
-            0,
-            15.05,
-            ['get', 'min_height']
-          ],
-          'fill-extrusion-opacity': 0.6
-        }
-      });
-
-      // Add markers for each resource type
-      const addMarker = (location: { lat: number; lng: number }, icon: string, popupContent: string, resource?: FirefightingResource) => {
-        const el = document.createElement('div');
-        el.className = 'marker';
-        el.style.backgroundImage = `url(${icon})`;
-        el.style.width = '24px';
-        el.style.height = '24px';
-        el.style.backgroundSize = 'contain';
-        el.style.backgroundRepeat = 'no-repeat';
-        
-        const marker = new mapboxgl.Marker(el)
-          .setLngLat([location.lng, location.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent))
-          .addTo(map.current!);
-
-        if (resource) {
-          el.addEventListener('click', () => {
-            setSelectedResource(resource);
-            map.current!.flyTo({
-              center: [location.lng, location.lat],
-              zoom: 15,
-              pitch: 60,
-              bearing: 0,
-              duration: 2000
-            });
-          });
-        }
-      };
-
-      // Add fire stations with 3D buildings
-      resourceData.fireStations.forEach(station => {
-        addMarker(
-          station.location,
-          '/images/fire-station.svg',
-          `<div class="p-2">
-            <h3 class="text-lg font-semibold text-gray-800 mb-1">${station.name}</h3>
-            <p class="text-sm text-gray-600">Resources: ${station.resources.length}</p>
-            <p class="text-sm text-gray-600">Coverage: ${station.coverage}km²</p>
-          </div>`
-        );
-      });
-
-      // Add firefighting resources with status indicators
-      resourceData.firefightingResources.forEach(resource => {
-        const icon = resource.type === 'engine' ? '/images/fire-engine.svg' :
-                    resource.type === 'helicopter' ? '/images/helicopter.svg' :
-                    '/images/resource.svg';
-        
-        const statusColor = resource.status === 'available' ? 'text-green-500' :
-                          resource.status === 'deployed' ? 'text-red-500' :
-                          'text-yellow-500';
-        
-        addMarker(
-          resource.location,
-          icon,
-          `<div class="p-2">
-            <h3 class="text-lg font-semibold text-gray-800 mb-1">${resource.name}</h3>
-            <p class="text-sm ${statusColor}">${resource.status}</p>
-            <p class="text-sm text-gray-600">Capacity: ${resource.capacity}</p>
-          </div>`,
-          resource
-        );
-      });
-
-      // Add water sources with level indicators
-      resourceData.waterSources.forEach(source => {
-        const levelColor = source.currentLevel > 80 ? 'text-green-500' :
-                          source.currentLevel > 40 ? 'text-yellow-500' :
-                          'text-red-500';
-        
-        addMarker(
-          source.location,
-          '/images/water-source.svg',
-          `<div class="p-2">
-            <h3 class="text-lg font-semibold text-gray-800 mb-1">${source.name}</h3>
-            <p class="text-sm ${levelColor}">Level: ${source.currentLevel}%</p>
-            <p class="text-sm text-gray-600">Capacity: ${source.capacity} gallons</p>
-          </div>`
-        );
-      });
-
-      // Add high risk areas with heat map effect
-      resourceData.highRiskAreas.forEach((area, index) => {
-        map.current!.addSource(`risk-area-${index}`, {
-          type: 'geojson',
-          data: {
-            type: 'Feature',
-            properties: {
-              name: area.name,
-              riskLevel: area.riskLevel
-            },
-            geometry: {
-              type: 'Point',
-              coordinates: [area.location.lng, area.location.lat]
-            }
-          }
-        });
-
-        map.current!.addLayer({
-          id: `risk-area-${index}`,
-          type: 'circle',
-          source: `risk-area-${index}`,
-          paint: {
-            'circle-radius': {
-              base: 1.75,
-              stops: [[12, area.radius * 50], [22, area.radius * 200]]
-            },
-            'circle-color': [
-              'interpolate',
-              ['linear'],
-              ['get', 'riskLevel'],
-              1, '#ffd700',
-              2, '#ffa500',
-              3, '#ff4500'
-            ],
-            'circle-opacity': 0.3,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-opacity': 0.5
-          }
-        });
-      });
+      setIsMapLoaded(true);
     });
 
-    return () => {
+    // Handle window resize
+    const handleResize = () => {
       if (map.current) {
-        map.current.remove();
-        map.current = null;
+        map.current.resize();
       }
     };
-  }, [loading, error, resourceData]);
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      markersRef.current.forEach(marker => marker.remove());
+      if (map.current) {
+        map.current.remove();
+      }
+    };
+  }, [resourceData]);
+
+  // Update markers when resource data changes
+  useEffect(() => {
+    if (!map.current || !resourceData) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    // Add firefighting resource markers
+    resourceData.firefightingResources.forEach(resource => {
+      const el = document.createElement('div');
+      el.className = `w-8 h-8 rounded-full relative -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-blue-500 flex items-center justify-center shadow-sm`;
+      
+      const icon = document.createElement('span');
+      icon.className = 'text-base';
+      icon.textContent = resource.type === 'truck' ? '🚒' : '🚁';
+      el.appendChild(icon);
+      
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center'
+      })
+        .setLngLat([resource.location.lng, resource.location.lat])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(
+              `<div class="p-3 rounded-lg shadow-md">
+                <h3 class="text-sm font-bold">${resource.name}</h3>
+                <p class="text-xs">Status: ${resource.status}</p>
+                <p class="text-xs">Type: ${resource.type}</p>
+              </div>`
+            )
+        )
+        .addTo(map.current!);
+      
+      markersRef.current.push(marker);
+    });
+
+    // Add fire station markers
+    resourceData.fireStations.forEach(station => {
+      const el = document.createElement('div');
+      el.className = 'w-8 h-8 rounded-full relative -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-red-500 flex items-center justify-center shadow-sm';
+      
+      const icon = document.createElement('span');
+      icon.className = 'text-base';
+      icon.textContent = '🏢';
+      el.appendChild(icon);
+      
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center'
+      })
+        .setLngLat([station.location.lng, station.location.lat])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(
+              `<div class="p-3 rounded-lg shadow-md">
+                <h3 class="text-sm font-bold">${station.name}</h3>
+                <p class="text-xs">Coverage: ${station.coverage}%</p>
+              </div>`
+            )
+        )
+        .addTo(map.current!);
+      
+      markersRef.current.push(marker);
+    });
+
+    // Add water source markers
+    resourceData.waterSources.forEach(source => {
+      const el = document.createElement('div');
+      el.className = 'w-8 h-8 rounded-full relative -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-green-500 flex items-center justify-center shadow-sm';
+      
+      const icon = document.createElement('span');
+      icon.className = 'text-base';
+      icon.textContent = '💧';
+      el.appendChild(icon);
+      
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center'
+      })
+        .setLngLat([source.location.lng, source.location.lat])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(
+              `<div class="p-3 rounded-lg shadow-md">
+                <h3 class="text-sm font-bold">${source.name}</h3>
+                <p class="text-xs">Type: ${source.type}</p>
+                <p class="text-xs">Level: ${source.currentLevel}%</p>
+              </div>`
+            )
+        )
+        .addTo(map.current!);
+      
+      markersRef.current.push(marker);
+    });
+
+    // Add sprinkler system markers
+    resourceData.sprinklerSystems.forEach(system => {
+      const el = document.createElement('div');
+      el.className = 'w-8 h-8 rounded-full relative -translate-x-1/2 -translate-y-1/2 bg-white border-2 border-blue-300 flex items-center justify-center shadow-sm';
+      
+      const icon = document.createElement('span');
+      icon.className = 'text-base';
+      icon.textContent = '💧';
+      el.appendChild(icon);
+      
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center'
+      })
+        .setLngLat([system.location.lng, system.location.lat])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(
+              `<div class="p-3 rounded-lg shadow-md">
+                <h3 class="text-sm font-bold">${system.name}</h3>
+                <p class="text-xs">Status: ${system.status}</p>
+                <p class="text-xs">Coverage: ${system.coverage}%</p>
+              </div>`
+            )
+        )
+        .addTo(map.current!);
+      
+      markersRef.current.push(marker);
+    });
+  }, [resourceData]);
 
   if (error) {
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-red-50/50 border border-red-200 text-red-700 p-4 rounded-xl shadow-md"
-      >
-        <p>{error}</p>
-      </motion.div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex flex-col items-center justify-center h-full p-4 text-center bg-gray-50 rounded-lg">
+        <AlertTriangle className="w-12 h-12 text-yellow-500 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Map</h3>
+        <p className="text-gray-600">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-full min-h-[300px] sm:min-h-[400px] rounded-lg overflow-hidden">
       <div 
         ref={mapContainer} 
-        className="w-full h-[600px] rounded-2xl shadow-md overflow-hidden"
+        className="absolute inset-0 w-full h-full"
       />
-      
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-700"></div>
+        </div>
+      )}
+      {/* Map controls overlay */}
+      <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+        <button 
+          className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+          onClick={() => map.current?.flyTo({
+            center: [-118.2437, 34.0522],
+            zoom: 11,
+            duration: 2000
+          })}
+        >
+          <MapPin className="w-5 h-5 text-gray-700" />
+        </button>
+      </div>
+      {/* Resource legend */}
+      <div className="absolute bottom-4 left-4 z-10 bg-white rounded-lg shadow-md p-3 text-sm">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white border-2 border-blue-500 flex items-center justify-center">
+              <span className="text-base">🚒</span>
+            </div>
+            <span>Fire Truck</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white border-2 border-red-500 flex items-center justify-center">
+              <span className="text-base">🏢</span>
+            </div>
+            <span>Fire Station</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white border-2 border-green-500 flex items-center justify-center">
+              <span className="text-base">💧</span>
+            </div>
+            <span>Water Source</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white border-2 border-blue-300 flex items-center justify-center">
+              <span className="text-base">💧</span>
+            </div>
+            <span>Sprinkler System</span>
+          </div>
+        </div>
+      </div>
+      {/* Resource details panel */}
       <AnimatePresence>
         {selectedResource && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-md border border-white/20"
+            className="absolute top-4 right-4 z-10 bg-white rounded-lg shadow-md p-4 max-w-xs"
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-1">{selectedResource.name}</h3>
-                <p className="text-sm text-gray-600">Type: {selectedResource.type}</p>
-                <p className="text-sm text-gray-600">Status: {selectedResource.status}</p>
-                <p className="text-sm text-gray-600">Capacity: {selectedResource.capacity}</p>
-              </div>
-              <button
-                onClick={() => setSelectedResource(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+            <h3 className="font-semibold text-lg mb-2">{selectedResource.name}</h3>
+            <div className="space-y-2 text-sm">
+              <p><span className="font-medium">Status:</span> {selectedResource.status}</p>
+              <p><span className="font-medium">Capacity:</span> {selectedResource.capacity}</p>
+              <p><span className="font-medium">Personnel:</span> {selectedResource.personnel}</p>
+              <p><span className="font-medium">Last Updated:</span> {new Date(selectedResource.lastUpdated).toLocaleString()}</p>
             </div>
+            <button
+              onClick={() => setSelectedResource(null)}
+              className="mt-4 text-sm text-gray-500 hover:text-gray-700"
+            >
+              Close
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

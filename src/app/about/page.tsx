@@ -4,7 +4,7 @@ import { Info, FileText, Github } from 'lucide-react';
 export default function AboutPage() {
   return (
     <div className="space-y-8">
-      <section className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-8 rounded-lg shadow-lg">
+      <section className="bg-gradient-to-r from-gray-800 to-gray-700 text-white p-8 rounded-2xl shadow-lg">
         <h1 className="text-3xl font-bold mb-4">About This Project</h1>
         <p className="text-xl">
           FlameFreeze is an innovative solution designed for EWB Design Corner 2025 
@@ -13,7 +13,7 @@ export default function AboutPage() {
       </section>
 
       {/* Project Overview */}
-      <section className="bg-white p-6 rounded-lg shadow-md">
+      <section className="bg-white p-6 rounded-xl shadow-md">
         <div className="flex items-start space-x-4">
           <Info className="h-10 w-10 text-amber-600 flex-shrink-0" />
           <div>
@@ -25,7 +25,7 @@ export default function AboutPage() {
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-semibold text-gray-800 mb-2">The Challenge</h3>
                 <p className="text-gray-600">
                   Los Angeles faces increasing wildfire threats due to climate change, urban expansion into wildland areas, 
@@ -34,7 +34,7 @@ export default function AboutPage() {
                 </p>
               </div>
               
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-semibold text-gray-800 mb-2">Our Solution</h3>
                 <p className="text-gray-600">
                   Our team (BUilders) developed FlameFreeze, a system that combines AI-powered early detection, stormwater harvesting, 
@@ -48,7 +48,7 @@ export default function AboutPage() {
       </section>
 
       {/* Technology Stack */}
-      <section className="bg-white p-6 rounded-lg shadow-md">
+      <section className="bg-white p-6 rounded-xl shadow-md">
         <div className="flex items-start space-x-4">
           <Github className="h-10 w-10 text-gray-700 flex-shrink-0" />
           <div>
@@ -59,7 +59,7 @@ export default function AboutPage() {
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-semibold text-gray-800 mb-2">Frontend</h3>
                 <ul className="space-y-1 text-gray-600">
                   <li>• Next.js (React framework)</li>
@@ -71,7 +71,7 @@ export default function AboutPage() {
                 </ul>
               </div>
               
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-semibold text-gray-800 mb-2">Backend</h3>
                 <ul className="space-y-1 text-gray-600">
                   <li>• Next.js API routes</li>
@@ -81,7 +81,7 @@ export default function AboutPage() {
                 </ul>
               </div>
               
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <h3 className="font-semibold text-gray-800 mb-2">Development Tools</h3>
                 <ul className="space-y-1 text-gray-600">
                   <li>• TypeScript</li>
@@ -96,7 +96,7 @@ export default function AboutPage() {
       </section>
 
       {/* Appropriate Technology */}
-      <section className="bg-white p-6 rounded-lg shadow-md">
+      <section className="bg-white p-6 rounded-xl shadow-md">
         <div className="flex items-start space-x-4">
           <FileText className="h-10 w-10 text-green-600 flex-shrink-0" />
           <div>
@@ -107,7 +107,7 @@ export default function AboutPage() {
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+              <div className="border border-green-200 rounded-xl p-4 bg-green-50 hover:shadow-md transition-shadow">
                 <h3 className="font-semibold text-green-800 mb-2">Environmental Sustainability</h3>
                 <ul className="space-y-2">
                   <li className="flex items-start">
@@ -129,7 +129,7 @@ export default function AboutPage() {
                 </ul>
               </div>
               
-              <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+              <div className="border border-green-200 rounded-xl p-4 bg-green-50 hover:shadow-md transition-shadow">
                 <h3 className="font-semibold text-green-800 mb-2">Community Integration</h3>
                 <ul className="space-y-2">
                   <li className="flex items-start">
@@ -152,7 +152,7 @@ export default function AboutPage() {
               </div>
             </div>
             
-            <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-200 hover:shadow-md transition-shadow">
               <h3 className="font-semibold text-amber-800 mb-2">Differentiation from Existing Solutions</h3>
               <p className="text-amber-900 mb-3">
                 While other wildfire management systems focus primarily on detection or suppression, our solution provides a comprehensive 
@@ -171,14 +171,14 @@ export default function AboutPage() {
       </section>
 
       {/* Team & Acknowledgments */}
-      <section className="bg-white p-6 rounded-lg shadow-md">
+      <section className="bg-white p-6 rounded-xl shadow-md">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Team & Acknowledgments</h2>
         <p className="text-gray-600 mb-6">
           This project was developed for EWB Design Corner 2025, with inspiration and guidance from various sources.
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
             <h3 className="font-semibold text-gray-800 mb-2">Project Team</h3>
             <ul className="space-y-1 text-gray-600">
               <li>• Ellen Zheng</li>
@@ -189,7 +189,7 @@ export default function AboutPage() {
             </ul>
           </div>
           
-          <div>
+          <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
             <h3 className="font-semibold text-gray-800 mb-2">Acknowledgments</h3>
             <ul className="space-y-1 text-gray-600">
               <li>• Engineers Without Borders</li>

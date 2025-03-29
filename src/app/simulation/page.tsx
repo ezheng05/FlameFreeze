@@ -414,12 +414,18 @@ export default function SimulationPage() {
     <div className="container mx-auto p-6 space-y-6">
       <Tabs defaultValue="sprinkler" className="space-y-6">
         <TabsList className="h-12 rounded-xl bg-white/80 backdrop-blur-sm border border-white/20">
-          <TabsTrigger value="sprinkler" className="rounded-lg data-[state=active]:bg-indigo-500/10">
-            <Droplets className="w-5 h-5 mr-2" />
+          <TabsTrigger 
+            value="sprinkler" 
+            className="rounded-lg data-[state=active]:bg-indigo-500/10 transition-all duration-200 hover:bg-indigo-500/5 hover:scale-105"
+          >
+            <Droplets className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" />
             Sprinkler System
           </TabsTrigger>
-          <TabsTrigger value="fan" className="rounded-lg data-[state=active]:bg-indigo-500/10">
-            <Wind className="w-5 h-5 mr-2" />
+          <TabsTrigger 
+            value="fan" 
+            className="rounded-lg data-[state=active]:bg-indigo-500/10 transition-all duration-200 hover:bg-indigo-500/5 hover:scale-105"
+          >
+            <Wind className="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" />
             Air Purification
           </TabsTrigger>
         </TabsList>
@@ -427,30 +433,30 @@ export default function SimulationPage() {
         <TabsContent value="sprinkler" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <div className="relative rounded-2xl overflow-hidden bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm">
+              <div className="relative rounded-2xl overflow-hidden bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm hover:shadow-md transition-all duration-300">
                 <canvas
                   ref={canvasRef}
                   width={800}
                   height={600}
-                  className="w-full h-[600px] cursor-crosshair"
+                  className="w-full h-[600px] cursor-crosshair transition-transform duration-200 hover:scale-[1.01]"
                   onClick={handleCanvasClick}
                 />
                 <div className="absolute top-4 right-4 flex gap-2">
                   <Button
                     onClick={isSimulationRunning ? pauseSimulation : startSimulation}
-                    className="rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white/95 border border-indigo-100"
+                    className="rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white/95 border border-indigo-100 transition-all duration-200 hover:scale-105 hover:shadow-md"
                   >
                     {isSimulationRunning ? "Pause" : "Start"} Simulation
                   </Button>
                   <Button
                     onClick={resetSimulation}
-                    className="rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white/95 border border-indigo-100"
+                    className="rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white/95 border border-indigo-100 transition-all duration-200 hover:scale-105 hover:shadow-md"
                   >
                     Reset Simulation
                   </Button>
                   <Button
                     onClick={handleSprinklerToggle}
-                    className="rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white/95 border border-indigo-100"
+                    className="rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white/95 border border-indigo-100 transition-all duration-200 hover:scale-105 hover:shadow-md"
                   >
                     {sprinklers.some(s => s.isActive) ? "Deactivate" : "Activate"} Sprinklers
                   </Button>
@@ -459,10 +465,10 @@ export default function SimulationPage() {
             </div>
 
             <div className="space-y-6">
-              <Card className="rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm overflow-hidden">
+              <Card className="rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300">
                 <CardHeader className="rounded-t-2xl bg-gradient-to-r from-orange-500/10 to-orange-400/5 pb-4 border-b border-orange-50">
                   <CardTitle className="text-xl font-semibold text-orange-900 flex items-center">
-                    <Droplets className="w-5 h-5 mr-2 text-orange-500" />
+                    <Droplets className="w-5 h-5 mr-2 text-orange-500 transition-transform duration-200 group-hover:scale-110" />
                     Simulation Controls
                   </CardTitle>
                 </CardHeader>
@@ -475,7 +481,7 @@ export default function SimulationPage() {
                       min={0}
                       max={100}
                       step={5}
-                      icon={<Droplets className="w-4 h-4" />}
+                      icon={<Droplets className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />}
                       unit="%"
                       lowLabel="Low"
                       highLabel="High"
@@ -484,10 +490,10 @@ export default function SimulationPage() {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm overflow-hidden">
+              <Card className="rounded-2xl bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300">
                 <CardHeader className="rounded-t-2xl bg-gradient-to-r from-orange-500/10 to-orange-400/5 pb-4 border-b border-orange-50">
                   <CardTitle className="text-xl font-semibold text-orange-900 flex items-center">
-                    <Thermometer className="w-5 h-5 mr-2 text-orange-500" />
+                    <Thermometer className="w-5 h-5 mr-2 text-orange-500 transition-transform duration-200 group-hover:scale-110" />
                     Weather Controls
                   </CardTitle>
                 </CardHeader>
@@ -500,7 +506,7 @@ export default function SimulationPage() {
                       min={0}
                       max={40}
                       step={0.5}
-                      icon={<Thermometer className="w-4 h-4" />}
+                      icon={<Thermometer className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />}
                       unit="°C"
                       lowLabel="Cold"
                       highLabel="Hot"
@@ -513,7 +519,7 @@ export default function SimulationPage() {
                       min={0}
                       max={100}
                       step={1}
-                      icon={<Droplets className="w-4 h-4" />}
+                      icon={<Droplets className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />}
                       unit="%"
                       lowLabel="Dry"
                       highLabel="Humid"
@@ -526,7 +532,7 @@ export default function SimulationPage() {
                       min={0}
                       max={30}
                       step={0.5}
-                      icon={<Wind className="w-4 h-4" />}
+                      icon={<Wind className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />}
                       unit=" m/s"
                       lowLabel="Calm"
                       highLabel="Strong"
@@ -539,7 +545,7 @@ export default function SimulationPage() {
                       min={0}
                       max={360}
                       step={5}
-                      icon={<Compass className="w-4 h-4" />}
+                      icon={<Compass className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />}
                       unit="°"
                       lowLabel="N (0°)"
                       midLabel="E (90°)"
@@ -555,7 +561,7 @@ export default function SimulationPage() {
         <TabsContent value="fan" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <div className="relative rounded-2xl overflow-hidden bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm">
+              <div className="relative rounded-2xl overflow-hidden bg-white/90 backdrop-blur-sm border border-indigo-100 shadow-sm hover:shadow-md transition-all duration-300">
                 <AirPurificationSystem />
               </div>
             </div>
