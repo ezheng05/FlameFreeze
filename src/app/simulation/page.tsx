@@ -15,8 +15,10 @@ import {
 import { Label } from '@/components/ui/label'
 import { EnhancedSlider } from '@/components/ui/enhanced-slider'
 
-const GRID_SIZE = 10
-const SPRINKLER_RADIUS = 50 // pixels
+const GRID_SIZE = 8
+const SPRINKLER_RADIUS = 50
+const FIRE_SPREAD_THRESHOLD = 0.3
+const SPRINKLER_EFFECTIVENESS = 0.8
 const ANIMATION_DURATION = 2000 // ms
 
 interface Sprinkler {
@@ -43,6 +45,7 @@ interface WeatherConditions {
 
 export default function SimulationPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const activeSprinklersRef = useRef<Set<string>>(new Set())
   const [sprinklers, setSprinklers] = useState<Sprinkler[]>([])
   const [fireSpots, setFireSpots] = useState<FireSpot[]>([])
   const [weather, setWeather] = useState<WeatherConditions>({
@@ -133,6 +136,57 @@ export default function SimulationPage() {
     }
   }
 
+  // Calculate sprinkler effectiveness based on distance and pressure
+  const calculateSprinklerEffectiveness = (sprinkler: Sprinkler, fire: FireSpot) => {
+    const distance = Math.hypot(sprinkler.x - fire.x, sprinkler.y - fire.y)
+    const distanceFactor = Math.max(0, 1 - (distance / SPRINKLER_RADIUS))
+    return distanceFactor * sprinkler.waterPressure * SPRINKLER_EFFECTIVENESS
+  }
+
+  // Activate sprinklers near fire spots
+  const activateNearbySprinklers = (fires: FireSpot[]) => {
+    if (!sprinklersActive) return
+
+    // Update the active sprinklers ref immediately
+    sprinklers.forEach(sprinkler => {
+      const closestFire = fires.reduce((closest, fire) => {
+        const currentDistance = Math.hypot(sprinkler.x - fire.x, sprinkler.y - fire.y)
+        const closestDistance = Math.hypot(sprinkler.x - closest.x, sprinkler.y - closest.y)
+        return currentDistance < closestDistance ? fire : closest
+      }, fires[0])
+
+      const distance = Math.hypot(sprinkler.x - closestFire.x, sprinkler.y - closestFire.y)
+      const activationRadius = SPRINKLER_RADIUS * (1.5 + (closestFire.intensity * 0.5))
+      const shouldActivate = distance < activationRadius
+
+      if (shouldActivate) {
+        activeSprinklersRef.current.add(`${sprinkler.x},${sprinkler.y}`)
+      }
+    })
+
+    // Update the state for persistence
+    setSprinklers(prev => prev.map(sprinkler => {
+      const closestFire = fires.reduce((closest, fire) => {
+        const currentDistance = Math.hypot(sprinkler.x - fire.x, sprinkler.y - fire.y)
+        const closestDistance = Math.hypot(sprinkler.x - closest.x, sprinkler.y - closest.y)
+        return currentDistance < closestDistance ? fire : closest
+      }, fires[0])
+
+      const distance = Math.hypot(sprinkler.x - closestFire.x, sprinkler.y - closestFire.y)
+      const activationRadius = SPRINKLER_RADIUS * (1.5 + (closestFire.intensity * 0.5))
+      const shouldActivate = distance < activationRadius
+      const pressure = shouldActivate ? 
+        Math.max(0.4, 1 - (distance / activationRadius)) : 
+        sprinkler.waterPressure
+
+      return {
+        ...sprinkler,
+        isActive: sprinkler.isActive || shouldActivate,
+        waterPressure: shouldActivate ? pressure : sprinkler.waterPressure
+      }
+    }))
+  }
+
   // Handle canvas click with enhanced fire behavior
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return
@@ -179,19 +233,15 @@ export default function SimulationPage() {
       direction 
     }])
     
-    // Activate nearby sprinklers with pressure variation
-    setSprinklers(prev => prev.map(sprinkler => {
-      const distance = Math.hypot(sprinkler.x - x, sprinkler.y - y)
-      const shouldActivate = distance < SPRINKLER_RADIUS * 1.5
-      const pressure = shouldActivate ? 
-        Math.max(0.4, 1 - (distance / (SPRINKLER_RADIUS * 1.5))) : 
-        1
-      return {
-        ...sprinkler,
-        isActive: sprinkler.isActive || shouldActivate,
-        waterPressure: shouldActivate ? pressure : sprinkler.waterPressure
-      }
-    }))
+    // Activate nearby sprinklers based on fire location and intensity
+    if (sprinklersActive) {
+      activateNearbySprinklers([{
+        x, y, 
+        intensity: 0.8, 
+        spreadRate, 
+        direction 
+      }])
+    }
   }
 
   // Handle pressure change
@@ -215,6 +265,10 @@ export default function SimulationPage() {
   // Handle sprinkler toggle
   const handleSprinklerToggle = () => {
     setSprinklersActive(prev => !prev)
+    if (!sprinklersActive) {
+      // Clear active sprinklers when deactivating
+      activeSprinklersRef.current.clear()
+    }
     setSprinklers(prev => prev.map(s => ({
       ...s,
       isActive: !sprinklersActive
@@ -259,18 +313,13 @@ export default function SimulationPage() {
       }
 
       const updatedFires = prev.map(fire => {
-        // Update fire properties based on weather and suppression
-        const nearbySprinklers = sprinklers.filter(s => 
-          s.isActive && Math.hypot(s.x - fire.x, s.y - fire.y) < SPRINKLER_RADIUS
-        )
-        
-        const suppressionFactor = nearbySprinklers.reduce((acc, s) => 
-          acc + (s.waterPressure * (1 - Math.hypot(s.x - fire.x, s.y - fire.y) / SPRINKLER_RADIUS))
-        , 0)
+        // Calculate total suppression from all active sprinklers
+        const totalSuppression = sprinklersActive ? sprinklers.reduce((acc, s) => 
+          acc + (activeSprinklersRef.current.has(`${s.x},${s.y}`) ? calculateSprinklerEffectiveness(s, fire) : 0), 0) : 0
 
         const { spreadRate, direction } = calculateFireSpread(fire, weather)
 
-        // Draw fire spot with gradient
+        // Draw fire spot with gradient and suppression effect
         const gradient = ctx.createRadialGradient(fire.x, fire.y, 0, fire.x, fire.y, 30 * fire.intensity)
         gradient.addColorStop(0, `rgba(255, ${Math.floor(165 * (1 - fire.intensity))}, 0, ${fire.intensity})`)
         gradient.addColorStop(0.6, `rgba(255, 0, 0, ${fire.intensity * 0.6})`)
@@ -280,6 +329,21 @@ export default function SimulationPage() {
         ctx.beginPath()
         ctx.arc(fire.x, fire.y, 30 * fire.intensity, 0, Math.PI * 2)
         ctx.fill()
+
+        // Draw suppression effect if sprinklers are active
+        if (sprinklersActive && totalSuppression > 0) {
+          const suppressionGradient = ctx.createRadialGradient(
+            fire.x, fire.y, 0,
+            fire.x, fire.y, 30 * fire.intensity * (1 + totalSuppression)
+          )
+          suppressionGradient.addColorStop(0, `rgba(0, 150, 255, ${0.3 * totalSuppression})`)
+          suppressionGradient.addColorStop(1, 'rgba(0, 150, 255, 0)')
+          
+          ctx.fillStyle = suppressionGradient
+          ctx.beginPath()
+          ctx.arc(fire.x, fire.y, 30 * fire.intensity * (1 + totalSuppression), 0, Math.PI * 2)
+          ctx.fill()
+        }
 
         // Draw spread indicator
         if (fire.spreadRate > 0) {
@@ -296,8 +360,8 @@ export default function SimulationPage() {
 
         return {
           ...fire,
-          intensity: Math.max(0, fire.intensity - (0.05 * suppressionFactor)),
-          spreadRate: spreadRate * (1 - suppressionFactor),
+          intensity: Math.max(0, fire.intensity - (0.05 * totalSuppression)),
+          spreadRate: spreadRate * (1 - totalSuppression),
           direction
         }
       }).filter(fire => fire.intensity > 0)
@@ -328,26 +392,49 @@ export default function SimulationPage() {
         return []
       })
 
+      // Activate nearby sprinklers in response to fire spread
+      if (sprinklersActive) {
+        activateNearbySprinklers([...updatedFires, ...newFires])
+      }
+
       return [...updatedFires, ...newFires]
     })
 
-    // Draw sprinklers with water effects
+    // Draw all sprinklers with enhanced water effects
     sprinklers.forEach(sprinkler => {
-      if (sprinkler.isActive) {
-        // Water coverage area
+      const isActive = activeSprinklersRef.current.has(`${sprinkler.x},${sprinkler.y}`)
+      
+      // Draw sprinkler base with activation state
+      ctx.fillStyle = isActive ? 'rgba(0, 150, 255, 0.8)' : 'rgba(200, 200, 200, 0.5)'
+      ctx.beginPath()
+      ctx.arc(sprinkler.x, sprinkler.y, 5, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Draw activation indicator for active sprinklers
+      if (isActive) {
+        ctx.strokeStyle = 'rgba(0, 150, 255, 0.6)'
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(sprinkler.x, sprinkler.y, 8, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+
+      // Draw water effects for active sprinklers when system is active
+      if (isActive && sprinklersActive) {
+        // Water coverage area with pressure-based opacity
         const gradient = ctx.createRadialGradient(
           sprinkler.x, sprinkler.y, 0,
           sprinkler.x, sprinkler.y, SPRINKLER_RADIUS
         )
-        gradient.addColorStop(0, `rgba(0, 150, 255, ${0.2 * sprinkler.waterPressure})`)
+        gradient.addColorStop(0, `rgba(0, 150, 255, ${0.4 * sprinkler.waterPressure})`)
         gradient.addColorStop(1, 'rgba(0, 150, 255, 0)')
         ctx.fillStyle = gradient
         ctx.beginPath()
         ctx.arc(sprinkler.x, sprinkler.y, SPRINKLER_RADIUS, 0, Math.PI * 2)
         ctx.fill()
 
-        // Water particles with wind effect
-        const particleCount = Math.floor(12 * sprinkler.waterPressure)
+        // Water particles with wind effect and pressure variation
+        const particleCount = Math.floor(20 * sprinkler.waterPressure)
         const angleStep = (Math.PI * 2) / particleCount
         const windRadians = (weather.windDirection * Math.PI) / 180
         const windEffect = weather.windSpeed / 20
@@ -358,7 +445,7 @@ export default function SimulationPage() {
           const windOffsetX = Math.cos(windRadians) * distance * windEffect
           const windOffsetY = Math.sin(windRadians) * distance * windEffect
           
-          ctx.fillStyle = `rgba(0, 150, 255, ${0.6 * sprinkler.waterPressure})`
+          ctx.fillStyle = `rgba(0, 150, 255, ${0.9 * sprinkler.waterPressure})`
           ctx.beginPath()
           ctx.arc(
             sprinkler.x + Math.cos(angle) * distance + windOffsetX,
@@ -384,6 +471,9 @@ export default function SimulationPage() {
       isActive: false,
       waterPressure: 1
     })))
+    
+    // Clear active sprinklers ref
+    activeSprinklersRef.current.clear()
     
     // Stop simulation if running
     setIsSimulationRunning(false)
@@ -456,9 +546,14 @@ export default function SimulationPage() {
                   </Button>
                   <Button
                     onClick={handleSprinklerToggle}
-                    className="rounded-lg bg-white/90 backdrop-blur-sm hover:bg-white/95 border border-indigo-100 transition-all duration-200 hover:scale-105 hover:shadow-md"
+                    className={`rounded-lg backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:shadow-md ${
+                      sprinklersActive 
+                        ? "bg-green-500/90 hover:bg-green-500/95 text-white border border-green-400" 
+                        : "bg-white/90 hover:bg-white/95 border border-indigo-100"
+                    }`}
                   >
-                    {sprinklers.some(s => s.isActive) ? "Deactivate" : "Activate"} Sprinklers
+                    <Droplets className={`w-4 h-4 mr-2 transition-transform duration-200 ${sprinklersActive ? "text-white" : "text-indigo-500"}`} />
+                    {sprinklersActive ? "Sprinklers Active" : "Sprinklers Inactive"}
                   </Button>
                 </div>
               </div>
